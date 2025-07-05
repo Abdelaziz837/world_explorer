@@ -1,5 +1,7 @@
 import requests
 import pandas as pd
+from tkinter import ttk
+import tkinter as tk
 
 
 def get_all_country_info():
@@ -47,6 +49,47 @@ def get_all_country_info():
 
 def save_to_cvs(data , filename): #take the data and create a dataframe that saves in a csv file in the same folder
     df = pd.DataFrame(data)
-    df.to_csv(filename,index = False)
+    df.to_csv(filename,index = False , quoting=1)
 
-save_to_cvs(get_all_country_info(), "countries.csv")    
+country_info = pd.read_csv("country.csv")
+
+
+
+root = tk.Tk()
+root.title("WORLD EXPLORER")
+root.geometry("750x700")
+root.configure(bg="#CCCCCC")
+
+main_frame = tk.Frame(root , bd = 5  , relief="sunken")
+main_frame.pack(pady=10 , padx=10 , fill="both" , expand=True)
+
+main_label = tk.Label(root, text = "🌍WORLD EXPLORER🌍" , foreground="#00296A" , background = "#CCCCCC" , font=( "bold" ,20 ))
+main_label.pack(pady=10 , padx=20)
+
+
+style = ttk.Style()
+style.configure("Treeview.Heading", font=("Franklin Gothic Medium", 14))
+style.configure("Treeview", font=("Calibri", 12))
+
+
+tree = ttk.Treeview(main_frame , columns=("name") , show="headings" , style="Treeview")
+
+scroll_bar = tk.Scrollbar(main_frame,orient="vertical" , command=tree.yview)
+tree.configure(yscrollcommand=scroll_bar.set)
+
+tree.grid(row= 0 , column=0 , sticky="nsew") #scroll bar mechanism
+scroll_bar.grid(row=0, column=1, sticky="ns")
+main_frame.grid_rowconfigure(0, weight=3)
+main_frame.grid_columnconfigure(0, weight=3)
+
+tree.heading("name" , text="NAME")          # tree adjusting 
+tree.column("name" , anchor="w")
+
+for _, row in country_info.iterrows(): 
+    tree.insert("" , "end" ,values=(row["name"],))
+
+def search_bar():
+    search_bar = ttk.Frame(main_frame , )
+
+
+root.mainloop()
