@@ -3,6 +3,7 @@ import pandas as pd
 from tkinter import ttk
 import tkinter as tk
 
+country_info = pd.read_csv("country.csv")
 
 def get_all_country_info():
     
@@ -51,8 +52,6 @@ def save_to_cvs(data , filename): #take the data and create a dataframe that sav
     df = pd.DataFrame(data)
     df.to_csv(filename,index = False , quoting=1)
 
-country_info = pd.read_csv("country.csv")
-
 def filter_tree(query):
     query = query.strip().lower()
     tree.delete(*tree.get_children())
@@ -65,7 +64,42 @@ def filter_tree(query):
 
     for _, row in data.iterrows():
         tree.insert("", "end", values=(row["name"],))
-        
+
+def show_main_page():
+    country_frame.pack_forget()
+    main_frame.pack(fill="both" , expand=True)
+    
+def show_country_page(country_data):
+    main_frame.pack_forget()
+    country_frame.pack(fill="both" , expand=True)
+
+    for widget in country_frame.winfo_children():
+        widget.destroy()
+    back_btn = tk.Button(country_frame, text="← Back", font=("Calibri", 12), command=show_main_page)
+    back_btn.pack(anchor="nw" , pady=10 , padx = 10)
+
+    info = (
+        f"🌍 {country_data['name']}\n"
+        f"🏛 Capital: {country_data['capital']}\n"
+        f"🌐 Region: {country_data['region']} / {country_data['subregion']}\n"
+        f"🗣 Language: {country_data['language']}\n"
+        f"💰 Currency: {country_data['currency']}\n"
+        f"👥 Population: {country_data['population']:,}"
+    )
+
+    label = ttk.Label(country_frame, text=info , font=("Calibri", 25), justify="left")
+    label.pack(padx=20, pady=20, anchor="nw")
+
+
+def on_country_select():
+    selected_item = tree.selection()
+    if not selected_item:
+        return
+    country_name = tree.item(selected_item[0])["values"][0]
+    country_data = country_info[country_info["name"] == country_name].iloc[0]
+    show_country_page(country_data)
+    tree.bind("<<TreeviewSelect>>", lambda e: on_country_select())
+
 root = tk.Tk()
 root.title("WORLD EXPLORER")
 root.geometry("750x700")
@@ -73,6 +107,8 @@ root.configure(bg="#CCCCCC")
 
 main_frame = tk.Frame(root , bd = 5  , relief="sunken")
 main_frame.pack(pady=10 , padx=10 , fill="both" , expand=True)
+country_frame = tk.Frame(root , bd=5 , relief="sunken")
+
 
 main_label = tk.Label(root, text = "🌍WORLD EXPLORER🌍" , foreground="#00296A" , background = "#CCCCCC" , font=( "bold" ,20 ))
 main_label.pack(pady=10 , padx=20)
@@ -85,12 +121,14 @@ style.configure("Treeview", font=("Calibri", 12) , rowheight = 28)
 
 
 tree = ttk.Treeview(main_frame , columns=("name",) , show="headings" , style="Treeview")
+tree.bind("<<TreeviewSelect>>" , lambda event : on_country_select() )
+
 
 scroll_bar = tk.Scrollbar(main_frame,orient="vertical" , command=tree.yview)
 tree.configure(yscrollcommand=scroll_bar.set)
 
 tree.grid(row= 0 , column=0 , sticky="nsew") #scroll bar mechanism
-scroll_bar.grid(row=0, column=1, sticky="ew")
+scroll_bar.grid(row=0, column=1, sticky="nw")
 main_frame.grid_rowconfigure(0, weight=3)
 main_frame.grid_columnconfigure(0, weight=3)
 
@@ -103,7 +141,7 @@ for _, row in country_info.iterrows():
 search_frame = ttk.Frame(main_frame )
 search_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=(10,1200) ,  pady=(10,0))
 
-search_label = tk.Label(search_frame, text="SEARCH" , font = ("Calibri", 12))
+search_label = tk.Label(search_frame, text="SEARCH : " , font = ("Calibri", 12))
 search_label.grid(row=0, column=0, padx=(0, 10), sticky="w")
 
 search_frame.columnconfigure(1, weight=1)
