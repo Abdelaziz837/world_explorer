@@ -53,8 +53,19 @@ def save_to_cvs(data , filename): #take the data and create a dataframe that sav
 
 country_info = pd.read_csv("country.csv")
 
+def filter_tree(query):
+    query = query.strip().lower()
+    tree.delete(*tree.get_children())
 
+    if not query:
+        data = country_info
+    else:
+        data = country_info[country_info.apply(
+            lambda row: row.astype(str).str.lower().str.contains(query).any(), axis=1)]
 
+    for _, row in data.iterrows():
+        tree.insert("", "end", values=(row["name"],))
+        
 root = tk.Tk()
 root.title("WORLD EXPLORER")
 root.geometry("750x700")
@@ -69,16 +80,17 @@ main_label.pack(pady=10 , padx=20)
 
 style = ttk.Style()
 style.configure("Treeview.Heading", font=("Franklin Gothic Medium", 14))
-style.configure("Treeview", font=("Calibri", 12))
+style.configure("Treeview", font=("Calibri", 12) , rowheight = 28)
 
 
-tree = ttk.Treeview(main_frame , columns=("name") , show="headings" , style="Treeview")
+
+tree = ttk.Treeview(main_frame , columns=("name",) , show="headings" , style="Treeview")
 
 scroll_bar = tk.Scrollbar(main_frame,orient="vertical" , command=tree.yview)
 tree.configure(yscrollcommand=scroll_bar.set)
 
 tree.grid(row= 0 , column=0 , sticky="nsew") #scroll bar mechanism
-scroll_bar.grid(row=0, column=1, sticky="ns")
+scroll_bar.grid(row=0, column=1, sticky="ew")
 main_frame.grid_rowconfigure(0, weight=3)
 main_frame.grid_columnconfigure(0, weight=3)
 
@@ -88,8 +100,19 @@ tree.column("name" , anchor="w")
 for _, row in country_info.iterrows(): 
     tree.insert("" , "end" ,values=(row["name"],))
 
-def search_bar():
-    search_bar = ttk.Frame(main_frame , )
+search_frame = ttk.Frame(main_frame )
+search_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=(10,1200) ,  pady=(10,0))
+
+search_label = tk.Label(search_frame, text="SEARCH" , font = ("Calibri", 12))
+search_label.grid(row=0, column=0, padx=(0, 10), sticky="w")
+
+search_frame.columnconfigure(1, weight=1)
+
+searchVar = tk.StringVar()
+searchEntry = tk.Entry(search_frame , textvariable=searchVar , font =("Calibri" , 12) , width=40)
+searchEntry.grid(row=0, column=1, sticky="ew")
+
+searchVar.trace_add("write" , lambda*args: filter_tree(searchVar.get()))
 
 
 root.mainloop()
