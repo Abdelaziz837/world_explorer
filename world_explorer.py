@@ -5,7 +5,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from io import BytesIO
 
-country_info = pd.read_csv("country.csv")
+image_cache = []
+
 
 def get_all_country_info():
     
@@ -54,6 +55,14 @@ def save_to_cvs(data , filename): #take the data and create a dataframe that sav
     df = pd.DataFrame(data)
     df.to_csv(filename,index = False , quoting=1)
 
+def load_country_data():
+    try:
+        country_info = pd.read_csv("country.csv")
+    except FileNotFoundError:
+        save_to_cvs(get_all_country_info() , "country.csv")
+        country_info = pd.read_csv("country.csv")
+    return country_info       
+
 def filter_tree(query):
     query = query.strip().lower()
     tree.delete(*tree.get_children())
@@ -72,7 +81,6 @@ def show_main_page():
     main_frame.pack(fill="both" , expand=True)
     
 def show_country_page(country_data):
-    image_cache = []
     
     main_frame.pack_forget()
     country_frame.pack(fill="both" , expand=True)
@@ -104,27 +112,22 @@ def show_country_page(country_data):
     image = image.resize((450,350) , Image.Resampling.LANCZOS)
     
     tk_image = ImageTk.PhotoImage(image)
-    
-    
-    
+      
     flag_label = tk.Label(info_frame, image=tk_image)
     image_cache.append(tk_image)
   
     flag_label.pack(side="left" , padx=(500,20) , anchor="n")
 
 
-    
-
-
 def on_country_select():
+    df = load_country_data()
     selected_item = tree.selection()
     if not selected_item:
         return
     country_name = tree.item(selected_item[0])["values"][0]
-    country_data = country_info[country_info["name"] == country_name].iloc[0]
+    country_data = df[df["name"] == country_name].iloc[0]
     show_country_page(country_data)
-    tree.bind("<<TreeviewSelect>>", lambda e: on_country_select())
-
+    
 root = tk.Tk()
 root.title("WORLD EXPLORER")
 root.geometry("750x700")
@@ -153,18 +156,18 @@ scroll_bar = tk.Scrollbar(main_frame,orient="vertical" , command=tree.yview)
 tree.configure(yscrollcommand=scroll_bar.set)
 
 tree.grid(row= 0 , column=0 , sticky="nsew") #scroll bar mechanism
-scroll_bar.grid(row=0, column=1, sticky="nw")
-main_frame.grid_rowconfigure(0, weight=3)
-main_frame.grid_columnconfigure(0, weight=3)
+scroll_bar.grid(row=0, column=1, sticky="ns")
+main_frame.grid_rowconfigure(0, weight=1)
+main_frame.grid_columnconfigure(0, weight=1)
 
 tree.heading("name" , text="NAME")          # tree adjusting 
 tree.column("name" , anchor="w")
 
-for _, row in country_info.iterrows(): 
+for _, row in load_country_data().iterrows(): 
     tree.insert("" , "end" ,values=(row["name"],))
 
 search_frame = ttk.Frame(main_frame )
-search_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=(10,1200) ,  pady=(10,0))
+search_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10 ,  pady=(10,0))
 
 search_label = tk.Label(search_frame, text="SEARCH : " , font = ("Calibri", 12))
 search_label.grid(row=0, column=0, padx=(0, 10), sticky="w")
