@@ -2,6 +2,8 @@ import requests
 import pandas as pd
 from tkinter import ttk
 import tkinter as tk
+from PIL import Image, ImageTk
+from io import BytesIO
 
 country_info = pd.read_csv("country.csv")
 
@@ -70,6 +72,8 @@ def show_main_page():
     main_frame.pack(fill="both" , expand=True)
     
 def show_country_page(country_data):
+    image_cache = []
+    
     main_frame.pack_forget()
     country_frame.pack(fill="both" , expand=True)
 
@@ -86,9 +90,30 @@ def show_country_page(country_data):
         f"💰 Currency: {country_data['currency']}\n"
         f"👥 Population: {country_data['population']:,}"
     )
+    info_frame = tk.Frame(country_frame)
+    info_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-    label = ttk.Label(country_frame, text=info , font=("Calibri", 25), justify="left")
-    label.pack(padx=20, pady=20, anchor="nw")
+    label = ttk.Label(info_frame, text=info , font=("Calibri", 25), justify="left" , anchor="n")
+    label.pack(side="left", anchor="n" , padx=(0 , 20))
+
+    img_url = country_data["flag"]  # This is the direct PNG URL
+    response = requests.get(img_url)
+    img_data = response.content
+ 
+    image = Image.open(BytesIO(img_data))
+    image = image.resize((450,350) , Image.Resampling.LANCZOS)
+    
+    tk_image = ImageTk.PhotoImage(image)
+    
+    
+    
+    flag_label = tk.Label(info_frame, image=tk_image)
+    image_cache.append(tk_image)
+  
+    flag_label.pack(side="left" , padx=(500,20) , anchor="n")
+
+
+    
 
 
 def on_country_select():
@@ -107,7 +132,7 @@ root.configure(bg="#CCCCCC")
 
 main_frame = tk.Frame(root , bd = 5  , relief="sunken")
 main_frame.pack(pady=10 , padx=10 , fill="both" , expand=True)
-country_frame = tk.Frame(root , bd=5 , relief="sunken")
+country_frame = tk.Frame(root , bd=5 , relief="sunken" )
 
 
 main_label = tk.Label(root, text = "🌍WORLD EXPLORER🌍" , foreground="#00296A" , background = "#CCCCCC" , font=( "bold" ,20 ))
