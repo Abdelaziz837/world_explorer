@@ -4,8 +4,95 @@ from tkinter import ttk
 import tkinter as tk
 from PIL import Image, ImageTk
 from io import BytesIO
+from datetime import date , timedelta
+import webbrowser
 
 image_cache = []
+
+def search_for_url(news_box, country_news):
+    news_box.config(state="normal")
+
+    # 1) Configure the hyperlink tag once
+    news_box.tag_config(
+        "hyperlink",
+        foreground="blue",
+        underline=True
+    )
+    news_box.tag_bind("hyperlink", "<Button-1>", open_url)
+    news_box.tag_bind("hyperlink", "<Enter>",
+                      lambda e: news_box.config(cursor="hand2"))
+    news_box.tag_bind("hyperlink", "<Leave>",
+                      lambda e: news_box.config(cursor=""))
+
+    # 2) Clear and populate
+    news_box.delete("1.0", "end")
+    if not country_news or not isinstance(country_news, list):
+        news_box.insert("end", "⚠️ No news data available.\n")
+    else:
+        for article in country_news:
+            for line in article.strip().splitlines():
+                if line.startswith("🔗"):
+                    url = line.replace("🔗", "").strip()
+                    # Insert URL with hyperlink tag
+                    news_box.insert("end", url + "\n", "hyperlink")
+                else:
+                    news_box.insert("end", line + "\n")
+            news_box.insert("end", "\n")
+
+    news_box.config(state="disabled")
+
+
+def open_url(event):
+    text = event.widget
+    # get the index of the click
+    idx = text.index(f"@{event.x},{event.y}")
+
+    # find the hyperlink tag at that index
+    if "hyperlink" not in text.tag_names(idx):
+        return
+
+    # get the tag’s full range covering this point
+    ranges = text.tag_prevrange("hyperlink", idx)
+    if not ranges:
+        ranges = text.tag_nextrange("hyperlink", idx)
+    if not ranges:
+        return
+
+    start, end = ranges
+    # extract the exact URL text
+    url = text.get(start, end).strip()
+    # ensure it really is a web URL
+    if not url.lower().startswith(("http://", "https://")):
+        url = "http://" + url
+    webbrowser.open(url)
+    
+def get_country_news(place , language):
+    info = []
+    today = date.today()
+    week_ago = today - timedelta(days=7)
+    today_str = today.isoformat()
+    week_ago_str = week_ago.isoformat()
+    base_news_url =f"https://newsapi.org/v2/everything?q={place}&from={week_ago_str}&to={today_str}&pageSize=5&language={language}&sortBy=popularity&apikey=8c64303a442543089d519e5d5bceb848"
+    try:
+        response = requests.get(base_news_url , timeout=10)
+        r = response.json()     
+    except (requests.exceptions.RequestException , ValueError) as e :
+      return [f"NEWS API REQUESTS FAILED : \n{e}"]
+    if r.get("status") != "ok" : 
+            return [f"NEWS API ERROR: {r.get('message','unknown error')}"]   
+    for indx , article  in enumerate(r.get("articles",[]) , start=1):
+        author =article.get("author") or "N/A"
+        summary = (
+            
+            f"{indx}. 📰 {article['title']}\n"
+            f"✍️ Author: {author}\n"
+            f"🏢 Source: {article['source']['name']}\n"
+            f"📝 {article['description']}\n"
+            f"🔗 {article['url']}\n\n"
+
+        )
+        info.append(summary)
+    return info if info else ["NO ARTICLES YET"]
 
 def get_current_weather(place):
     base_weather_url =f"http://api.weatherapi.com/v1/current.json?key=0e15f7bf18614926944122416250707&q={place}" 
@@ -27,7 +114,6 @@ def get_current_weather(place):
       
     return info
     
-
 def get_all_country_info():
     
     info = []
@@ -99,17 +185,35 @@ def filter_tree(query):
 def show_main_page():
     country_frame.pack_forget()
     main_frame.pack(fill="both" , expand=True)
-    
+        
 def show_country_page(country_data):
-    
+    # hide main page, show country page
     main_frame.pack_forget()
-    country_frame.pack(fill="both" , expand=True)
+    country_frame.pack(fill="both", expand=True)
 
-    for widget in country_frame.winfo_children():
-        widget.destroy()
-    back_btn = tk.Button(country_frame, text="← Back", font=("Calibri", 12), command=show_main_page)
-    back_btn.pack(anchor="nw" , pady=10 , padx = 10)
+    # clear out old widgets
+    for w in country_frame.winfo_children():
+        w.destroy()
 
+    # back button
+    back_btn = tk.Button(country_frame, text="← Back",
+                         font=("Calibri", 12),
+                         command=show_main_page)
+    back_btn.pack(anchor="nw", pady=10, padx=10)
+
+    # top-level container for info + content
+    info_frame = tk.Frame(country_frame)
+    info_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+    # left side (info + weather + news)
+    left = tk.Frame(info_frame)
+    left.pack(side="left", fill="both", expand=True)
+
+    # right side (flag)
+    right = tk.Frame(info_frame)
+    right.pack(side="right", fill="y")
+
+    # --- COUNTRY INFO ---
     country_info = (
         f"🌍 {country_data['name']}\n"
         f"🏛 Capital: {country_data['capital']}\n"
@@ -117,44 +221,60 @@ def show_country_page(country_data):
         f"🗣 Language: {country_data['language']}\n"
         f"💰 Currency: {country_data['currency']}\n"
         f"👥 Population: {country_data['population']:,}"
-        
     )
-    info_frame = tk.Frame(country_frame)
-    info_frame.pack(fill="both", expand=True, padx=20, pady=20)
-    
-    left_frame = tk.Frame(info_frame)
-    left_frame.pack(side="left", fill="both", expand=True, padx=(0, 20))
+    info_lbl = ttk.Label(left, text=country_info,
+                         font=("Calibri", 16),
+                         justify="left")
+    info_lbl.pack(fill="x", pady=(0, 15))
 
-    right_frame = tk.Frame(info_frame)
-    right_frame.pack(side="left", anchor="n")
+    # --- FLAG IMAGE ---
+    img_url = country_data["flag"]
+    resp = requests.get(img_url)
+    img = Image.open(BytesIO(resp.content))
+    img = img.resize((250, 300), Image.Resampling.LANCZOS)
+    tk_img = ImageTk.PhotoImage(img)
+    image_cache.append(tk_img)
 
+    flag_lbl = tk.Label(right, image=tk_img, bd=2, relief="solid")
+    flag_lbl.pack(pady=(0, 20), padx=10)
 
-    label = ttk.Label(left_frame, text=country_info , font=("Calibri", 25), justify="left" , anchor="n")
-    label.pack(anchor="nw" , padx=(0 , 20))
-    
-    
+    # --- WEATHER ---
+    weather_title = ttk.Label(left, text="🌦 WEATHER",
+                              font=("Calibri", 18),
+                              justify="left")
+    weather_title.pack(fill="x", pady=(0, 5))
 
-    img_url = country_data["flag"]  # This is the direct PNG URL
-    response = requests.get(img_url)
-    img_data = response.content
- 
-    image = Image.open(BytesIO(img_data))
-    image = image.resize((450,350) , Image.Resampling.LANCZOS)
-    
-    tk_image = ImageTk.PhotoImage(image)
-      
-    flag_label = tk.Label(right_frame, image=tk_image)
-    image_cache.append(tk_image)
-  
-    flag_label.pack(side="left" , padx=(500,20) , anchor="n")
+    weather_text = get_current_weather(country_data["capital"])
+    weather_lbl = ttk.Label(left, text=weather_text,
+                            font=("Calibri", 12),
+                            justify="left")
+    weather_lbl.pack(fill="x", pady=(0, 20))
 
-    weather_label = ttk.Label(left_frame, text = "WEATHER : " , font=("Calibri", 35), justify="left" , anchor="s")
-    weather_label.pack(anchor="nw" , padx=(0 , 10) , pady=30)
-    
-    country_weather = get_current_weather(country_data['capital'])
-    weather_data = ttk.Label(left_frame ,text=country_weather ,font=("Calibri", 25), justify="left", anchor="nw" )
-    weather_data.pack(anchor="nw" , padx=(0 , 10) , pady=10)
+    # --- NEWS ---
+    news_title = ttk.Label(left, text="🗞 TOP HEADLINES",
+                           font=("Calibri", 18),
+                           justify="left")
+    news_title.pack(fill="x", pady=(0, 5))
 
+    country_news = get_country_news(country_data["name"], country_data["code"])
+
+    # frame to hold Text + Scrollbar
+    news_frame = tk.Frame(left)
+    news_frame.pack(fill="both", expand=True)
+
+    news_box = tk.Text(news_frame,
+                       wrap="word",
+                       font=("Calibri", 12),
+                       bd=1, relief = "sunken")
+    news_box.pack(side="left", fill="both", expand=True)
+
+    scrollbar = tk.Scrollbar(news_frame,
+                             command=news_box.yview)
+    scrollbar.pack(side="right", fill="y")
+    news_box.config(yscrollcommand=scrollbar.set)
+
+    # insert and tag URLs
+    search_for_url(news_box, country_news)
 
 def on_country_select():
     df = load_country_data()
@@ -172,7 +292,7 @@ def on_country_select():
     
 root = tk.Tk()
 root.title("WORLD EXPLORER")
-root.geometry("750x700")
+root.geometry("900x800")
 root.configure(bg="#CCCCCC")
 
 main_frame = tk.Frame(root , bd = 5  , relief="sunken")
