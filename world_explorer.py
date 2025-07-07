@@ -7,6 +7,26 @@ from io import BytesIO
 
 image_cache = []
 
+def get_current_weather(place):
+    base_weather_url =f"http://api.weatherapi.com/v1/current.json?key=0e15f7bf18614926944122416250707&q={place}" 
+    try:
+      response = requests.get(base_weather_url)
+      r = response.json()
+    except (requests.exceptions.RequestException , ValueError) as e:
+      return f"WEATHER API REQUEST FAILED :\n{e}"
+    
+    info = (
+        f"🕒 Local Time: {r['location']['localtime']}\n"
+        f"📅 Last Updated: {r['current']['last_updated']}\n"
+        f"🌡 Temperature: {r['current']['temp_c']}°C\n"
+        f"🥵 Feels Like: {r['current']['feelslike_c']}°C\n"
+        f"🌥 Condition: {r['current']['condition']['text']}\n"
+        f"💨 Wind Speed: {r['current']['wind_kph']} km/h"
+    )  
+      
+      
+    return info
+    
 
 def get_all_country_info():
     
@@ -68,9 +88,9 @@ def filter_tree(query):
     tree.delete(*tree.get_children())
 
     if not query:
-        data = country_info
+        data = load_country_data()
     else:
-        data = country_info[country_info.apply(
+        data = load_country_data()[load_country_data().apply(
             lambda row: row.astype(str).str.lower().str.contains(query).any(), axis=1)]
 
     for _, row in data.iterrows():
@@ -90,19 +110,29 @@ def show_country_page(country_data):
     back_btn = tk.Button(country_frame, text="← Back", font=("Calibri", 12), command=show_main_page)
     back_btn.pack(anchor="nw" , pady=10 , padx = 10)
 
-    info = (
+    country_info = (
         f"🌍 {country_data['name']}\n"
         f"🏛 Capital: {country_data['capital']}\n"
         f"🌐 Region: {country_data['region']} / {country_data['subregion']}\n"
         f"🗣 Language: {country_data['language']}\n"
         f"💰 Currency: {country_data['currency']}\n"
         f"👥 Population: {country_data['population']:,}"
+        
     )
     info_frame = tk.Frame(country_frame)
     info_frame.pack(fill="both", expand=True, padx=20, pady=20)
+    
+    left_frame = tk.Frame(info_frame)
+    left_frame.pack(side="left", fill="both", expand=True, padx=(0, 20))
 
-    label = ttk.Label(info_frame, text=info , font=("Calibri", 25), justify="left" , anchor="n")
-    label.pack(side="left", anchor="n" , padx=(0 , 20))
+    right_frame = tk.Frame(info_frame)
+    right_frame.pack(side="left", anchor="n")
+
+
+    label = ttk.Label(left_frame, text=country_info , font=("Calibri", 25), justify="left" , anchor="n")
+    label.pack(anchor="nw" , padx=(0 , 20))
+    
+    
 
     img_url = country_data["flag"]  # This is the direct PNG URL
     response = requests.get(img_url)
@@ -113,10 +143,17 @@ def show_country_page(country_data):
     
     tk_image = ImageTk.PhotoImage(image)
       
-    flag_label = tk.Label(info_frame, image=tk_image)
+    flag_label = tk.Label(right_frame, image=tk_image)
     image_cache.append(tk_image)
   
     flag_label.pack(side="left" , padx=(500,20) , anchor="n")
+
+    weather_label = ttk.Label(left_frame, text = "WEATHER : " , font=("Calibri", 35), justify="left" , anchor="s")
+    weather_label.pack(anchor="nw" , padx=(0 , 10) , pady=30)
+    
+    country_weather = get_current_weather(country_data['capital'])
+    weather_data = ttk.Label(left_frame ,text=country_weather ,font=("Calibri", 25), justify="left", anchor="nw" )
+    weather_data.pack(anchor="nw" , padx=(0 , 10) , pady=10)
 
 
 def on_country_select():
@@ -127,6 +164,11 @@ def on_country_select():
     country_name = tree.item(selected_item[0])["values"][0]
     country_data = df[df["name"] == country_name].iloc[0]
     show_country_page(country_data)
+
+
+
+#gui
+
     
 root = tk.Tk()
 root.title("WORLD EXPLORER")
@@ -167,7 +209,7 @@ for _, row in load_country_data().iterrows():
     tree.insert("" , "end" ,values=(row["name"],))
 
 search_frame = ttk.Frame(main_frame )
-search_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10 ,  pady=(10,0))
+search_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=(10,1200) ,  pady=(10,0))
 
 search_label = tk.Label(search_frame, text="SEARCH : " , font = ("Calibri", 12))
 search_label.grid(row=0, column=0, padx=(0, 10), sticky="w")
