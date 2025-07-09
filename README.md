@@ -11,7 +11,6 @@ World Explorer is a desktop application built with Python and Tkinter that lets 
 - 🌦 Get real-time weather data for each capital city
 - 🗞 See the latest top news headlines per country
 - 🖼 Display each country’s flag
-- 📦 Packaged as a standalone `.exe` for Windows
 
 ---
 
