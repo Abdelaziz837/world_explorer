@@ -31,17 +31,6 @@ World Explorer is a desktop application built with Python and Tkinter that lets 
 python world_explorer.py
 ```
 
-### 🪄 Build the Executable (Optional)
-
-To create a fast-launching `.exe`:
-
-```bash
-pyinstaller --clean --windowed --icon=icon.ico --add-data "country.csv;." world_explorer.py
-```
-
-> Make sure `country.csv` and `icon.ico` are in the same directory as your script.
-
----
 
 ## 🔑 API Keys
 
@@ -53,22 +42,12 @@ This app uses:
 To use the app, insert your API keys in the appropriate functions:
 
 ```python
-weather_api_key = "YOUR_WEATHER_API_KEY"
-news_api_key = "YOUR_NEWS_API_KEY"
+get_current_weather()
+get_country_news()
 ```
 
 ---
 
-## 📁 Project Structure
-
-```
-world_explorer/
-├── world_explorer.py       # Main application script
-├── country.csv             # Country data (auto-generated if missing)
-├── icon.ico                # App icon
-├── README.md               # This file
-└── dist/                   # Output folder after building the .exe
-```
 
 ---
 
