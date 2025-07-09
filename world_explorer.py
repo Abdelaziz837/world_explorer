@@ -273,8 +273,7 @@ def show_country_page(country_data):
                    bd=1, relief="sunken")
     news_box.pack(side="left", fill="both", expand=True)
     news_box.insert("end", "🧪 News box loaded.\n")
-    search_for_url(news_box, country_news)
-    
+
 # Add the scrollbar
     scrollbar = tk.Scrollbar(news_frame, command=news_box.yview)
     scrollbar.pack(side="right", fill="y")
