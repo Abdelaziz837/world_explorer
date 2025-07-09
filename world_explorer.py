@@ -7,6 +7,7 @@ from io import BytesIO
 from datetime import date , timedelta
 import webbrowser
 
+
 image_cache = []
 
 def search_for_url(news_box, country_news):
@@ -40,7 +41,6 @@ def search_for_url(news_box, country_news):
             news_box.insert("end", "\n")
 
     news_box.config(state="disabled")
-
 
 def open_url(event):
     text = event.widget
@@ -257,21 +257,29 @@ def show_country_page(country_data):
     news_title.pack(fill="x", pady=(0, 5))
 
     country_news = get_country_news(country_data["name"], country_data["code"])
+    
+
 
     # frame to hold Text + Scrollbar
     news_frame = tk.Frame(left)
     news_frame.pack(fill="both", expand=True)
 
+# Create the Text widget only once
     news_box = tk.Text(news_frame,
-                       wrap="word",
-                       font=("Calibri", 12),
-                       bd=1, relief = "sunken")
+                   wrap="word",
+                   font=("Calibri", 12),
+                   bg="white",  
+                   fg="black",
+                   bd=1, relief="sunken")
     news_box.pack(side="left", fill="both", expand=True)
-
-    scrollbar = tk.Scrollbar(news_frame,
-                             command=news_box.yview)
+    news_box.insert("end", "🧪 News box loaded.\n")
+    search_for_url(news_box, country_news)
+    
+# Add the scrollbar
+    scrollbar = tk.Scrollbar(news_frame, command=news_box.yview)
     scrollbar.pack(side="right", fill="y")
     news_box.config(yscrollcommand=scrollbar.set)
+    print("News box created:", news_box)
 
     # insert and tag URLs
     search_for_url(news_box, country_news)
@@ -343,4 +351,5 @@ searchEntry.grid(row=0, column=1, sticky="ew")
 searchVar.trace_add("write" , lambda*args: filter_tree(searchVar.get()))
 
 
-root.mainloop()
+if __name__ == "__main__":
+    root.mainloop()
