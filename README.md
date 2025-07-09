@@ -21,7 +21,7 @@ World Explorer is a desktop application built with Python and Tkinter that lets 
 - Python 3.8+
 - Required libraries:
   ```bash
-  pip install requests pandas pillow
+  pip install requests pandas pillow tkinter Image ImageTK BytesIO date timedelta  webbrowser
   ```
 
 ### 🚀 Run the App
